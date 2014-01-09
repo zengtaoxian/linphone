@@ -6243,4 +6243,26 @@ void linphone_core_set_chat_database_path(LinphoneCore *lc, const char *path){
 	}
 }
 
+bool_t requestAuthInfo(const char *user_name);
 
+bool_t linphone_core_can_we_interrupt_call(LinphoneCore *lc,const char *user_name)
+{
+    if(linphone_core_get_calls_nb(lc)>0) {
+        //会话的发起者
+        if(linphone_call_get_dir(lc->current_call)==LinphoneCallOutgoing) {
+            //认证OK
+            if( requestAuthInfo(user_name) ) {
+                linphone_core_terminate_call(lc,lc->current_call);
+                ms_warning("########## %s terminate current call! ##########",user_name);
+                return TRUE;
+            } else {
+	            return FALSE;
+            }
+        } else  {   
+            //会话的接收者
+            ms_warning("########## %s : Not LinphoneCallOutgoing! ##########",__FUNCTION__);
+	        return FALSE;
+        }
+    }
+	return TRUE;
+}

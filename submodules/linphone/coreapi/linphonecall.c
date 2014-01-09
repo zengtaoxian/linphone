@@ -37,6 +37,228 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mseventqueue.h"
 #include "mediastreamer2/mssndcard.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#define MAX_FLV_BUFFER (1024*1024)
+typedef struct {
+    unsigned int time;
+    unsigned int size;
+    unsigned char end;
+    unsigned char tag[11];
+    unsigned char data[MAX_FLV_BUFFER];
+}FLV;
+char flv_hd[]={0x46, 0x4C, 0x56, 0x01,0x05, 0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0x00};
+
+static int write_flv_tag(int fd,FLV* flv)
+{
+    if(write(fd,flv->tag,11)!=11)
+    {
+        ms_error("write_flv_tag write size 11 fail\n");
+        return -1;
+    }
+
+    if(write(fd,flv->data,flv->size)!=flv->size)
+    {
+        ms_error("write_flv_tag write flv->size %u fail\n",flv->size);
+        return -1;
+    }
+    return 0;
+}
+
+static int read_flv_tag(int fd,FLV* flv)
+{
+    int ret;
+    ret=read(fd,flv->tag,11);
+    if(ret==11) {
+        flv->size=(flv->tag[1]<<16|flv->tag[2]<<8|flv->tag[3]) + 4;
+        flv->time=(flv->tag[4]<<16|flv->tag[5]<<8|flv->tag[6]);
+        if(flv->size>MAX_FLV_BUFFER)
+        {
+            ms_error("read_flv_tag MAX_FLV_BUFFER too short\n");
+            return -1;
+        }
+        if(read(fd,flv->data,flv->size)!=flv->size)
+        {
+            ms_error("read_flv_tag read flv->size %u fail\n",flv->size);
+            return -1;
+        }
+        flv->end=0;
+    }
+    else if(ret==0) {
+        flv->end=1;
+    }
+    else {
+        ms_error("read_flv_tag read size 11 fail\n");
+        return -1;
+    }
+
+    return 0;
+}
+static int merge_stream(char* video_file, char* audio_file, char* to_file)
+{
+    int v,a,t,ret=0;
+    FLV *tag_v=NULL;
+    FLV *tag_a=NULL;
+
+	v = open(video_file, O_RDONLY);
+    if(v<0) {
+        ms_error("can not open %s\n",video_file);
+        return -1;
+    }
+	a = open(audio_file, O_RDONLY);
+    if(v<0) {
+        ms_error("can not open %s\n",audio_file);
+        return -1;
+    }
+	t = open(to_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
+	if(t < 0) {
+        ms_error("can not open %s\n",to_file);
+		return -1;
+	}
+
+    tag_v=malloc(sizeof(FLV));
+    if(!tag_v){
+        ret=-1;
+        ms_error("merge_stream malloc fail\n");
+        goto fail;
+    }
+    
+    tag_a=malloc(sizeof(FLV));
+    if(!tag_a){
+        ret=-1;
+        ms_error("merge_stream malloc fail\n");
+        goto fail;
+    }
+
+    if( write(t,flv_hd,sizeof(flv_hd)) != sizeof(flv_hd)) {
+        ms_error("merge_stream writ flv_hd fail\n");
+        ret=-1;
+        goto fail;
+    }
+
+    if(lseek(v,13,SEEK_SET)<0 || lseek(a,13,SEEK_SET)<0) {
+        ms_error("merge_stream file lseek fail\n");
+        ret=-1;
+        goto fail;
+    }
+
+    if((ret=read_flv_tag(v,tag_v))<0) {
+        goto fail;
+    }
+     
+    if((ret=read_flv_tag(a,tag_a))<0) {
+        goto fail;
+    }
+
+    while( !tag_v->end && !tag_a->end ) {
+        if(tag_v->time<=tag_a->time) {
+            if((ret=write_flv_tag(t,tag_v))<0)
+                goto fail;
+            if((ret=read_flv_tag(v,tag_v))<0)
+                goto fail;
+        }
+        else {
+            if((ret=write_flv_tag(t,tag_a))<0)
+                goto fail;
+            if((ret=read_flv_tag(a,tag_a))<0)
+                goto fail;
+        }
+    }
+    
+    if(tag_a->end) {
+        do {
+            if((ret=write_flv_tag(t,tag_v))<0)
+                goto fail;
+            if((ret=read_flv_tag(v,tag_v))<0)
+                goto fail;
+        } while(!tag_v->end);
+    }
+    if(tag_v->end) {
+        do {
+            if((ret=write_flv_tag(t,tag_a))<0)
+                goto fail;
+            if((ret=read_flv_tag(a,tag_a))<0)
+                goto fail;
+        }
+        while(!tag_a->end);
+    }
+fail:
+    close(v);
+    close(a);
+    close(t);
+    free(tag_v);
+    free(tag_a);
+    return ret;
+}
+
+static char *record_dir=NULL;
+static char *record_file=NULL;
+void linphone_call_start_video_recording(LinphoneCall *call,char const * dir,char const *file){
+    char file_tmp[256];
+
+    if(record_dir)
+        free(record_dir);
+    if(record_file)
+        free(record_file);
+
+    record_dir=strdup(dir);
+    record_file=strdup(file);
+
+    if(record_dir && record_file)
+    {
+        ms_message("start_recording %s/%s\n",record_dir,record_file);
+#ifdef VIDEO_ENABLED
+        sprintf(file_tmp,"%s/h264.flv",record_dir);
+        video_record_start_incall(call->videostream,file_tmp);
+#endif
+        sprintf(file_tmp,"%s/snd.flv",record_dir);
+        audio_record_start_incall(call->audiostream,file_tmp);
+    }
+}
+
+void linphone_call_merge_stream(LinphoneCall *call)
+{
+    char video_file[256];
+    char audio_file[256];
+    char to_file[256];
+    if(record_dir && record_file)
+    {
+        sprintf(video_file,"%s/h264.flv",record_dir);
+        sprintf(audio_file,"%s/snd.flv",record_dir);
+        sprintf(to_file,"%s/%s",record_dir,record_file);
+		
+        if( access(video_file,R_OK)==0 && access(audio_file,R_OK)==0 )
+        {
+            ms_message("merge_stream %s, %s -> %s\n",video_file,audio_file,to_file);
+            if(merge_stream(video_file, audio_file, to_file)==0){
+                ms_message("merge_stream success\n");
+            }
+
+            if(unlink(video_file)!=0)
+            {
+                ms_warning("merge_stream unlink:%s",strerror(errno));
+                
+            }
+            if(unlink(audio_file)!=0)
+            {
+                ms_warning("merge_stream unlink:%s",strerror(errno));
+            }
+        }
+        free(record_dir);
+        free(record_file);
+        record_dir=NULL;
+        record_file=NULL;
+    }
+}
+void linphone_call_stop_video_recording(LinphoneCall *call){
+#ifdef VIDEO_ENABLED
+    video_record_stop_incall(call->videostream);
+#endif
+    audio_record_stop_incall(call->audiostream);
+    return linphone_call_merge_stream(call);
+}
+
 #ifdef VIDEO_ENABLED
 static MSWebCam *get_nowebcam_device(){
 	return ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),"StaticImage: Static picture");
@@ -2065,6 +2287,7 @@ void linphone_call_stop_media_streams(LinphoneCall *call){
 		rtp_profile_destroy(call->video_profile);
 		call->video_profile=NULL;
 	}
+    linphone_call_merge_stream(call);
 }
 
 

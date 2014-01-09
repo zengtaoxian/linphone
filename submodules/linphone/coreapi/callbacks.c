@@ -252,6 +252,15 @@ static void call_received(SalOp *h){
 	from_addr=linphone_address_new(from);
 	to_addr=linphone_address_new(to);
 
+    //实现抢断功能
+	if (!linphone_core_can_we_interrupt_call(lc,sal_address_get_username(from_addr))){
+		sal_call_decline(h,SalReasonDeclined,NULL);
+		sal_op_release(h);
+		linphone_address_destroy(from_addr);
+		linphone_address_destroy(to_addr);
+		return;
+	}
+
 	if ((already_a_call_with_remote_address(lc,from_addr) && prevent_colliding_calls) || already_a_call_pending(lc)){
 		ms_warning("Receiving another call while one is ringing or initiated, refusing this one with busy message.");
 		sal_call_decline(h,SalReasonBusy,NULL);

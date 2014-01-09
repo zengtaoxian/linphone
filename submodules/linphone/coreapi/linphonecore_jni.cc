@@ -142,7 +142,7 @@ extern "C" void Java_org_linphone_core_LinphoneCoreFactoryImpl_setDebugMode(JNIE
 		,jobject  thiz
 		,jboolean isDebug
 		,jstring  jdebugTag) {
-	if (isDebug) {
+	if (1) {
 		LogDomain = env->GetStringUTFChars(jdebugTag, NULL);
 		linphone_core_enable_logs_with_cb(linphone_android_ortp_log_handler);
 	} else {
@@ -2543,7 +2543,7 @@ extern "C" jboolean Java_org_linphone_core_LinphoneCallParamsImpl_isLowBandwidth
 }
 
 extern "C" void Java_org_linphone_core_LinphoneCallParamsImpl_enableLowBandwidth(JNIEnv *env, jobject thiz, jlong cp, jboolean enable) {
-	linphone_call_params_enable_low_bandwidth((LinphoneCallParams *)cp, enable);
+	linphone_call_params_enable_low_bandwidth((LinphoneCallParams *)cp, 0);
 }
 
 extern "C" jlong Java_org_linphone_core_LinphoneCallParamsImpl_getUsedAudioCodec(JNIEnv *env, jobject thiz, jlong cp) {
@@ -2573,7 +2573,7 @@ extern "C" void Java_org_linphone_core_LinphoneCallParamsImpl_audioBandwidth(JNI
 }
 
 extern "C" void Java_org_linphone_core_LinphoneCallParamsImpl_enableVideo(JNIEnv *env, jobject thiz, jlong lcp, jboolean b){
-	linphone_call_params_enable_video((LinphoneCallParams*)lcp, b);
+	linphone_call_params_enable_video((LinphoneCallParams*)lcp, 1);
 }
 
 extern "C" jboolean Java_org_linphone_core_LinphoneCallParamsImpl_getVideoEnabled(JNIEnv *env, jobject thiz, jlong lcp){
@@ -4355,3 +4355,47 @@ JNIEXPORT jstring JNICALL Java_org_linphone_core_PayloadTypeImpl_getSendFmtp(JNI
   
   
 
+extern "C" void Java_org_linphone_core_LinphoneCallImpl_startVideoRecording(JNIEnv *env, jobject thiz, jlong ptr, jstring dir, jstring file) {
+	LinphoneCall *call = (LinphoneCall *) ptr;
+	const char* cdir=env->GetStringUTFChars(dir, NULL);
+	const char* cfile=env->GetStringUTFChars(file, NULL);
+	linphone_call_start_video_recording(call, cdir,cfile);
+	env->ReleaseStringUTFChars(dir, cdir);
+	env->ReleaseStringUTFChars(file, cfile);
+}
+
+extern "C" void Java_org_linphone_core_LinphoneCallImpl_stopVideoRecording(JNIEnv *env, jobject thiz, jlong ptr) {
+	LinphoneCall *call = (LinphoneCall *) ptr;
+	linphone_call_stop_video_recording(call);
+}
+
+static jclass auth_handler_class=NULL;
+static jmethodID auth_handler_id=NULL;
+extern "C" bool_t requestAuthInfo(const char *user_name)
+{
+	static bool_t init_done=FALSE;
+    JNIEnv *env = 0;
+    ms_warning("########################### %s <%s> #############################",__FUNCTION__,user_name);
+
+    if(user_name==NULL)
+    {
+        return FALSE;
+    }
+
+    if ( jvm->AttachCurrentThread(&env,NULL) != 0 ) {
+        ms_error("%s : cannot attach VM",__FUNCTION__);
+        return FALSE;
+    }
+
+    if(!init_done){
+		auth_handler_class=(jclass)env->NewGlobalRef(env->FindClass("org/linphone/AuthProvider"));
+		auth_handler_id = env->GetStaticMethodID(auth_handler_class, "requestAuthInfo","(Ljava/lang/String;)I");
+		if (auth_handler_id==NULL) {
+            ms_fatal("#################### auth method not found ####################");
+            return FALSE;
+        }
+        init_done=TRUE;
+    }
+
+    return env->CallStaticIntMethod(auth_handler_class, auth_handler_id, env->NewStringUTF(user_name))?TRUE:FALSE;
+}

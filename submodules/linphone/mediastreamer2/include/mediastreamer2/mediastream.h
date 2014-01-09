@@ -588,6 +588,10 @@ MS2_PUBLIC void video_preview_stop(VideoPreview *stream);
 **/
 
 MS2_PUBLIC bool_t ms_is_ipv6(const char *address);
+MS2_PUBLIC void video_record_start_incall(VideoStream * stream, char *filename);
+MS2_PUBLIC void video_record_stop_incall(VideoStream * stream);
+MS2_PUBLIC void audio_record_start_incall(AudioStream * stream, char *filename);
+MS2_PUBLIC void audio_record_stop_incall(AudioStream * stream);
 
 
 #ifdef __cplusplus

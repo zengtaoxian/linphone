@@ -39,6 +39,7 @@ MEDIASTREAMER2_INCLUDES := \
 	$(LOCAL_PATH)/../../../externals/speex/include \
 	$(LOCAL_PATH)/../../../externals/build/speex \
 	$(LOCAL_PATH)/../../../externals/gsm/inc \
+	$(LOCAL_PATH)/../../../externals/build/vpu \
 	$(LOCAL_PATH)/../../../externals/ffmpeg \
 	$(LOCAL_PATH)/../../../externals/ \
 	$(LOCAL_PATH)/../../../externals/build/ffmpeg/$(TARGET_ARCH) \
@@ -124,7 +125,7 @@ LOCAL_SRC_FILES += \
 	videofilters/pixconv.c  \
 	videofilters/sizeconv.c \
 	videofilters/nowebcam.c \
-	videofilters/h264dec.c \
+	videofilters/H264Dec.c \
 	videofilters/mire.c \
 	videofilters/vp8.c \
 	videofilters/jpegwriter.c \

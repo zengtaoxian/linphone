@@ -19,6 +19,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
+#define EN_WITH_REC
+#ifdef EN_WITH_REC
+#include "mediastreamer2/flv.h"
+#include <sys/stat.h>
+#include <fcntl.h>
+#endif
 
 #include <speex/speex.h>
 
@@ -30,6 +36,27 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <malloc.h> /* for alloca */
 #endif
 
+#ifdef EN_WITH_REC
+static int rec_close(MSFilter *f, void *arg);
+
+typedef struct FLVDataTag_s
+{
+	unsigned char soundFormat;      //4bit
+    unsigned char soundRate;        //2bit
+    unsigned char soundSample;      //1bit
+    unsigned char soundType;        //1bit
+}FLVAudioTag;	
+
+typedef struct FLVTag_s
+{
+	unsigned char tagType;          //1B
+	unsigned int  dataSize;         //3B
+	unsigned int  timeStamp;        //3B
+    unsigned char timestampExtended;//1B
+    unsigned int  streamID;         //3B
+	FLVAudioTag   tagData;
+}FLVTag;
+#endif
 typedef struct SpeexEncState{
 	int rate;
 	int bitrate;
@@ -43,6 +70,9 @@ typedef struct SpeexEncState{
 	void *state;
 	uint32_t ts;
 	MSBufferizer *bufferizer;
+#ifdef EN_WITH_REC
+    FLVStream* flv;
+#endif
 } SpeexEncState;
 
 static void enc_init(MSFilter *f){
@@ -50,7 +80,7 @@ static void enc_init(MSFilter *f){
 #ifdef SPEEX_LIB_SET_CPU_FEATURES
     int cpuFeatures = 0;
 #endif
-	s->rate=8000;
+	s->rate=16000;
 	s->bitrate=-1;
 	s->maxbitrate=-1;
 	s->ip_bitrate=-1;
@@ -62,6 +92,9 @@ static void enc_init(MSFilter *f){
 	s->state=0;
 	s->ts=0;
 	s->bufferizer=ms_bufferizer_new();
+#ifdef EN_WITH_REC
+	s->flv = newFLVStream(1024*1024);
+#endif
 	f->data=s;
 
 #ifdef SPEEX_LIB_SET_CPU_FEATURES
@@ -89,9 +122,84 @@ static void enc_uninit(MSFilter *f){
 	ms_bufferizer_destroy(s->bufferizer);
 	if (s->state!=NULL)
 		speex_encoder_destroy(s->state);
+#ifdef EN_WITH_REC
+	if (s->flv->fd>=0)	
+        rec_close(f,NULL);
+	ms_free(s->flv->data);
+	ms_free(s->flv);
+#endif
 	ms_free(s);
 }
 
+#ifdef EN_WITH_REC
+static int rec_open(MSFilter *f, void *arg){
+	SpeexEncState *s=(SpeexEncState*)f->data;
+	const char *filename=(const char*)arg;
+
+    if (s->flv->fd>=0) rec_close(f,NULL);
+	ms_mutex_lock(&f->lock);
+	s->flv->fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
+	if (s->flv->fd<0){
+		ms_warning("Cannot open %s: %s",filename,strerror(errno));
+		ms_mutex_unlock(&f->lock);
+		return -1;
+	}
+	writeFlvHeader(s->flv,FLVFLAG_AUDIO);
+	s->flv->time=-1;
+	s->flv->state=Started;
+	ms_mutex_unlock(&f->lock);
+	return 0;
+}
+
+static int rec_close(MSFilter *f, void *arg){
+	SpeexEncState *s=(SpeexEncState*)f->data;
+	ms_mutex_lock(&f->lock);
+	s->flv->state=Stopped;
+	if (s->flv->fd>=0)	{
+        flvFlush(s->flv);
+		close(s->flv->fd);
+		s->flv->fd=-1;
+		s->flv->time=-1;
+	}
+	ms_mutex_unlock(&f->lock);
+	return 0;
+}
+
+static void getSpeexFLVTag(int timeStamp,FLVTag *tag, int size)
+{
+	FLVAudioTag *dataTag=&(tag->tagData);
+	tag->tagType = FLVTAGTYPE_AUDIO;
+	tag->timeStamp = timeStamp;
+	tag->timestampExtended = 0;
+	tag->streamID = 0;
+    tag->dataSize = size+1;
+    
+	dataTag->soundFormat=11;    //speex
+    dataTag->soundRate  =1;     //11kHz
+    dataTag->soundSample=1;     //snd16Bit
+    dataTag->soundType =0;      //sndMono
+}
+
+static void writeFlvTag(FLVStream *flv,FLVTag *tag,unsigned char* data, int size)
+{
+    if(flvFull(flv,tag->dataSize + 15))
+        flvFlush(flv);
+
+	FLVAudioTag *dataTag=&(tag->tagData);
+	putChar(flv, tag->tagType);
+	putUI24(flv, tag->dataSize);
+	putUI24(flv, tag->timeStamp);
+	putChar(flv, tag->timestampExtended);
+	putUI24(flv, tag->streamID);
+	putChar(flv, (  (dataTag->soundFormat<<4))|
+                    (dataTag->soundRate<<2)   |
+                    (dataTag->soundSample<<1) |
+                    (dataTag->soundType)      );
+    writeData(flv,data,size);
+
+	putUI32(flv, tag->dataSize + 11);
+}
+#endif
 static void apply_max_bitrate(SpeexEncState *s){
 	int pps=1000/s->ptime;
 
@@ -270,6 +378,18 @@ static void enc_process(MSFilter *f){
 		}
 		speex_bits_insert_terminator(&bits);
 		k=speex_bits_write(&bits, (char*)om->b_wptr, nbytes*frame_per_packet);
+#ifdef EN_WITH_REC
+        if (s->flv->state==Started){
+            FLVTag tag;
+            if(s->flv->time == -1)
+                s->flv->time=0;
+            else
+                s->flv->time+=20;
+
+            getSpeexFLVTag(s->flv->time,&tag,k);
+            writeFlvTag(s->flv,&tag,om->b_wptr,k);
+        }
+#endif
 		om->b_wptr+=k;
 
 		mblk_set_timestamp_info(om,s->ts-s->frame_size);
@@ -427,6 +547,8 @@ static MSFilterMethod enc_methods[]={
 	{	MS_FILTER_ADD_ATTR		,	enc_add_attr	},
 	{	MS_AUDIO_ENCODER_SET_PTIME	,	enc_set_ptime	},
 	{	MS_AUDIO_ENCODER_GET_PTIME	,	enc_get_ptime	},
+	{	MS_FILTER_REC_OPEN	,	rec_open	},
+	{	MS_FILTER_REC_CLOSE	,	rec_close	},
 	{	0				,	NULL		}
 };
 
@@ -482,7 +604,7 @@ typedef struct DecState{
 
 static void dec_init(MSFilter *f){
 	DecState *s=(DecState *)ms_new(DecState,1);
-	s->rate=8000;
+	s->rate=16000;
 	s->frsz=0;
 	s->state=NULL;
 	s->penh=1;
