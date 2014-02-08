@@ -125,7 +125,7 @@ LOCAL_SRC_FILES += \
 	videofilters/pixconv.c  \
 	videofilters/sizeconv.c \
 	videofilters/nowebcam.c \
-	videofilters/H264Dec.c \
+	videofilters/h264dec.c \
 	videofilters/mire.c \
 	videofilters/vp8.c \
 	videofilters/jpegwriter.c \
