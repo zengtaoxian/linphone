@@ -142,7 +142,7 @@ extern "C" void Java_org_linphone_core_LinphoneCoreFactoryImpl_setDebugMode(JNIE
 		,jobject  thiz
 		,jboolean isDebug
 		,jstring  jdebugTag) {
-	if (1) {
+	if (isDebug) {
 		LogDomain = env->GetStringUTFChars(jdebugTag, NULL);
 		linphone_core_enable_logs_with_cb(linphone_android_ortp_log_handler);
 	} else {
@@ -2543,7 +2543,7 @@ extern "C" jboolean Java_org_linphone_core_LinphoneCallParamsImpl_isLowBandwidth
 }
 
 extern "C" void Java_org_linphone_core_LinphoneCallParamsImpl_enableLowBandwidth(JNIEnv *env, jobject thiz, jlong cp, jboolean enable) {
-	linphone_call_params_enable_low_bandwidth((LinphoneCallParams *)cp, 0);
+	linphone_call_params_enable_low_bandwidth((LinphoneCallParams *)cp, enable);
 }
 
 extern "C" jlong Java_org_linphone_core_LinphoneCallParamsImpl_getUsedAudioCodec(JNIEnv *env, jobject thiz, jlong cp) {
@@ -2573,7 +2573,7 @@ extern "C" void Java_org_linphone_core_LinphoneCallParamsImpl_audioBandwidth(JNI
 }
 
 extern "C" void Java_org_linphone_core_LinphoneCallParamsImpl_enableVideo(JNIEnv *env, jobject thiz, jlong lcp, jboolean b){
-	linphone_call_params_enable_video((LinphoneCallParams*)lcp, 1);
+	linphone_call_params_enable_video((LinphoneCallParams*)lcp, b);
 }
 
 extern "C" jboolean Java_org_linphone_core_LinphoneCallParamsImpl_getVideoEnabled(JNIEnv *env, jobject thiz, jlong lcp){
