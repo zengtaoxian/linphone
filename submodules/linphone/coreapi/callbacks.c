@@ -253,7 +253,7 @@ static void call_received(SalOp *h){
 	to_addr=linphone_address_new(to);
 
     //实现抢断功能
-	if (!linphone_core_can_we_interrupt_call(lc,sal_address_get_username(from_addr))){
+	if (!linphone_core_can_we_interrupt_call(lc,sal_address_get_display_name(from_addr))){
 		sal_call_decline(h,SalReasonDeclined,NULL);
 		sal_op_release(h);
 		linphone_address_destroy(from_addr);
