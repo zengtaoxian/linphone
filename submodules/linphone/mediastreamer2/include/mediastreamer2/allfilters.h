@@ -138,6 +138,7 @@ typedef enum MSFilterId{
 	MS_WEBRTC_AEC_ID,
 	MS_AAC_ELD_ENC_ID,
 	MS_AAC_ELD_DEC_ID,
+    MS_FILTER_END_ID,
 	MS_OPUS_ENC_ID,
 	MS_OPUS_DEC_ID
 } MSFilterId;

@@ -605,6 +605,7 @@ struct _LinphoneCore
 	int max_call_logs;
 	int missed_calls;
 	VideoPreview *previewstream;
+    VideoStream  *recordstream;
 	struct _MSEventQueue *msevq;
 	LinphoneRtpTransportFactories *rtptf;
 	MSList *bl_reqs;

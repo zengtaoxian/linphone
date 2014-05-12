@@ -824,3 +824,62 @@ void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZr
 void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable) {
     stream->display_filter_auto_rotate_enabled = enable;
 }
+
+void video_record_start(VideoStream * stream, MSWebCam *cam, char* filename)
+{
+	MSConnectionHelper ch;
+    if(cam==NULL)
+    {
+        cam=ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
+    }
+    
+	stream->cam=cam;
+	stream->source = ms_web_cam_create_reader(cam);
+    stream->ms.encoder=ms_filter_new_from_name("MSH264Enc");
+    stream->output =ms_filter_new(MS_FILTER_END_ID);
+
+	MS_VIDEO_SIZE_ASSIGN(stream->sent_vsize, QVGA);
+    stream->device_orientation=0;
+	configure_video_source (stream);
+
+	ms_filter_call_method(stream->ms.encoder,MS_FILTER_REC_OPEN,filename);
+
+	ms_connection_helper_start (&ch);
+	ms_connection_helper_link(&ch, stream->source, -1, 0);
+	if (stream->pixconv) {
+		ms_connection_helper_link(&ch, stream->pixconv, 0, 0);
+	}
+	if (stream->sizeconv) {
+		ms_connection_helper_link(&ch, stream->sizeconv, 0, 0);
+	}
+
+	ms_connection_helper_link(&ch, stream->ms.encoder, 0, 0);
+	ms_connection_helper_link(&ch, stream->output, 0, -1);
+
+    stream->ms.ticker = ms_ticker_new();
+    ms_ticker_set_name(stream->ms.ticker,"VideoRec MSTicker");
+    ms_ticker_attach (stream->ms.ticker, stream->source);
+}
+void video_record_stop (VideoStream * stream)
+{
+    if(stream->ms.ticker){
+        if (stream->source)
+            ms_ticker_detach(stream->ms.ticker,stream->source);
+
+        if (stream->source){
+            MSConnectionHelper ch;
+            ms_connection_helper_start(&ch);
+            ms_connection_helper_unlink(&ch, stream->source, -1, 0);
+            if (stream->pixconv) {
+                ms_connection_helper_unlink(&ch, stream->pixconv, 0, 0);
+            }
+            if (stream->sizeconv) {
+                ms_connection_helper_unlink(&ch, stream->sizeconv, 0, 0);
+            }
+            ms_connection_helper_unlink(&ch, stream->ms.encoder, 0, 0);
+            ms_connection_helper_unlink(&ch, stream->output, 0, -1);
+        }
+	}
+	video_stream_free (stream);
+}
+

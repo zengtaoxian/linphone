@@ -593,6 +593,8 @@ MS2_PUBLIC void video_record_stop_incall(VideoStream * stream);
 MS2_PUBLIC void audio_record_start_incall(AudioStream * stream, char *filename);
 MS2_PUBLIC void audio_record_stop_incall(AudioStream * stream);
 
+MS2_PUBLIC void video_record_start(VideoStream * stream, MSWebCam *device, char *filename);
+MS2_PUBLIC void video_record_stop(VideoStream * stream);
 
 #ifdef __cplusplus
 }

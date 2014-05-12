@@ -2130,6 +2130,9 @@ LINPHONE_PUBLIC void linphone_core_set_video_display_filter(LinphoneCore *lc, co
 
 LINPHONE_PUBLIC void linphone_call_start_video_recording(LinphoneCall *call,char const * dir,char const *file);
 LINPHONE_PUBLIC void linphone_call_stop_video_recording(LinphoneCall *call);
+
+LINPHONE_PUBLIC void linphone_core_start_video_recording(LinphoneCore *lc,char const * dir,char const *file,unsigned long id);
+LINPHONE_PUBLIC void linphone_core_stop_video_recording(LinphoneCore *lc);
 #ifdef __cplusplus
 }
 #endif

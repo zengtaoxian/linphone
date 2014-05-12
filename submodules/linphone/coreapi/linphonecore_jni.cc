@@ -4353,7 +4353,23 @@ JNIEXPORT jstring JNICALL Java_org_linphone_core_PayloadTypeImpl_getSendFmtp(JNI
 
 
   
-  
+extern "C" void Java_org_linphone_core_LinphoneCoreImpl_startVideoRecording(JNIEnv *env,
+        jobject thiz,
+		jlong lc,
+        jstring dir, jstring file,
+	    jobject obj) {
+	const char* cdir=env->GetStringUTFChars(dir, NULL);
+	const char* cfile=env->GetStringUTFChars(file, NULL);
+	linphone_core_start_video_recording((LinphoneCore *)lc, cdir,cfile,(unsigned long)obj);
+	if(cdir) env->ReleaseStringUTFChars(dir, cdir);
+	if(cfile) env->ReleaseStringUTFChars(file, cfile);
+
+}
+extern "C" void Java_org_linphone_core_LinphoneCoreImpl_stopVideoRecording(JNIEnv *env, 
+        jobject thiz, 
+		jlong lc) {
+	    linphone_core_stop_video_recording((LinphoneCore *)lc);
+}
 
 extern "C" void Java_org_linphone_core_LinphoneCallImpl_startVideoRecording(JNIEnv *env, jobject thiz, jlong ptr, jstring dir, jstring file) {
 	LinphoneCall *call = (LinphoneCall *) ptr;

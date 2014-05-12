@@ -1986,7 +1986,11 @@ static void linphone_call_start_video_stream(LinphoneCall *call, const char *cna
 		video_preview_stop(lc->previewstream);
 		lc->previewstream=NULL;
 	}
-	
+    if (lc->recordstream!=NULL) {
+        video_record_stop(lc->recordstream);
+        lc->recordstream=NULL;
+    }	
+
 	if (vstream!=NULL && vstream->dir!=SalStreamInactive && vstream->rtp_port!=0) {
 		const char *rtp_addr=vstream->rtp_addr[0]!='\0' ? vstream->rtp_addr : call->resultdesc->addr;
 		const char *rtcp_addr=vstream->rtcp_addr[0]!='\0' ? vstream->rtcp_addr : call->resultdesc->addr;

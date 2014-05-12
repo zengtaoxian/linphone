@@ -1247,9 +1247,9 @@ static void linphone_core_init (LinphoneCore * lc, const LinphoneCoreVTable *vta
 	linphone_core_assign_payload_type(lc,&payload_type_pcmu8000,0,NULL);
 	linphone_core_assign_payload_type(lc,&payload_type_gsm,3,NULL);
 	linphone_core_assign_payload_type(lc,&payload_type_pcma8000,8,NULL);
-	linphone_core_assign_payload_type(lc,&payload_type_speex_nb,110,"vbr=on");
+//	linphone_core_assign_payload_type(lc,&payload_type_speex_nb,110,"vbr=on");
 	linphone_core_assign_payload_type(lc,&payload_type_speex_wb,111,"vbr=on");
-	linphone_core_assign_payload_type(lc,&payload_type_speex_uwb,112,"vbr=on");
+//	linphone_core_assign_payload_type(lc,&payload_type_speex_uwb,112,"vbr=on");
 	linphone_core_assign_payload_type(lc,&payload_type_telephone_event,101,"0-11");
 	linphone_core_assign_payload_type(lc,&payload_type_g722,9,NULL);
 
@@ -1280,9 +1280,9 @@ static void linphone_core_init (LinphoneCore * lc, const LinphoneCoreVTable *vta
 	linphone_core_assign_payload_type(lc,&payload_type_h263_1998,98,"CIF=1;QCIF=1");
 #endif
 	
-	linphone_core_assign_payload_type(lc,&payload_type_mp4v,99,"profile-level-id=3");
+//	linphone_core_assign_payload_type(lc,&payload_type_mp4v,99,"profile-level-id=3");
 	linphone_core_assign_payload_type(lc,&payload_type_h264,102,"profile-level-id=42801F");
-	linphone_core_assign_payload_type(lc,&payload_type_vp8,103,NULL);
+//	linphone_core_assign_payload_type(lc,&payload_type_vp8,103,NULL);
 	
 	linphone_core_assign_payload_type(lc,&payload_type_theora,97,NULL);
 	linphone_core_assign_payload_type(lc,&payload_type_x_snow,-1,NULL);
@@ -6265,4 +6265,29 @@ bool_t linphone_core_can_we_interrupt_call(LinphoneCore *lc,const char *user_nam
         }
     }
 	return TRUE;
+}
+
+void linphone_core_start_video_recording(LinphoneCore *lc,char const * dir,char const *file,unsigned long id)
+{
+#ifdef VIDEO_ENABLED
+    char file_tmp[256];
+    if(lc->recordstream!=NULL) {
+        video_record_stop(lc->recordstream);
+        lc->recordstream=NULL;
+    }
+	lc->recordstream = (VideoStream *)ms_new0 (VideoStream, 1);
+    sprintf(file_tmp,"%s/%s",dir,file);
+    video_record_start(lc->recordstream,lc->video_conf.device,file_tmp);
+    video_stream_set_native_preview_window_id(lc->recordstream,id);
+#endif
+}
+
+void linphone_core_stop_video_recording(LinphoneCore *lc)
+{
+#ifdef VIDEO_ENABLED
+    if(lc->recordstream!=NULL) {
+        video_record_stop(lc->recordstream);
+        lc->recordstream=NULL;
+    }
+#endif
 }

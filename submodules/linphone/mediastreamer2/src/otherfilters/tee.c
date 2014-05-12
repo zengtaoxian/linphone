@@ -108,4 +108,24 @@ MSFilterDesc ms_tee_desc={
 
 #endif
 
+static MSFilterMethod end_methods[]={
+	{	0		,	NULL		}
+};
+static void end_init(MSFilter *f){ }
+static void end_uninit(MSFilter *f){ }
+static void end_process(MSFilter *f){ ms_queue_flush(f->inputs[0]);}
+
+MSFilterDesc ms_end_desc={
+	.id=MS_FILTER_END_ID,
+	.name="MSEnd",
+	.text="A MSEnd Filter",
+	.category=MS_FILTER_OTHER,
+	.ninputs=1,
+	.noutputs=0,
+	.init=end_init,
+	.process=end_process,
+	.uninit=end_uninit,
+	.methods=end_methods
+};
+MS_FILTER_DESC_EXPORT(ms_tee_desc)
 MS_FILTER_DESC_EXPORT(ms_tee_desc)
