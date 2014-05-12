@@ -30,7 +30,7 @@
 
 #include "audiofilters/devices.h"
 
-#define NATIVE_USE_HARDWARE_RATE 1
+//#define NATIVE_USE_HARDWARE_RATE 1
 //#define TRACE_SND_WRITE_TIMINGS
 
 using namespace::fake_android;
