@@ -32,6 +32,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <ortp/zrtp.h>
 
+void video_record_start_incall(VideoStream * stream, char *filename) {
+    if(stream && stream->ms.encoder)
+	    ms_filter_call_method(stream->ms.encoder,MS_FILTER_REC_OPEN,filename);
+}
+void video_record_stop_incall(VideoStream * stream)
+{
+    if(stream && stream->ms.encoder)
+	    ms_filter_call_method_noarg(stream->ms.encoder,MS_FILTER_REC_CLOSE);
+}
 
 void video_stream_free(VideoStream *stream) {
 	/* Prevent filters from being destroyed two times */

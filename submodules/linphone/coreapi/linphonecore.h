@@ -2128,6 +2128,8 @@ LINPHONE_PUBLIC const char *linphone_core_get_video_display_filter(LinphoneCore 
 LINPHONE_PUBLIC void linphone_core_set_video_display_filter(LinphoneCore *lc, const char *filtername);
 
 
+LINPHONE_PUBLIC void linphone_call_start_video_recording(LinphoneCall *call,char const * dir,char const *file);
+LINPHONE_PUBLIC void linphone_call_stop_video_recording(LinphoneCall *call);
 #ifdef __cplusplus
 }
 #endif

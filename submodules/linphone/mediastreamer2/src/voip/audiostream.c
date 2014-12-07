@@ -44,6 +44,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 #endif
 
+void audio_record_start_incall(AudioStream * stream, char *filename) {
+    if(stream && stream->ms.encoder)
+	    ms_filter_call_method(stream->ms.encoder,MS_FILTER_REC_OPEN,filename);
+}
+void audio_record_stop_incall(AudioStream * stream) {
+    if(stream && stream->ms.encoder) ms_filter_call_method_noarg(stream->ms.encoder,MS_FILTER_REC_CLOSE);
+}
+
 static void audio_stream_free(AudioStream *stream) {
 	media_stream_free(&stream->ms);
 	if (stream->soundread!=NULL) ms_filter_destroy(stream->soundread);

@@ -679,6 +679,8 @@ void ms_filter_postpone_task(MSFilter *f, MSFilterFunc taskfunc);
 #endif
 
 #include "msinterfaces.h"
+#define MS_FILTER_REC_OPEN      MS_FILTER_BASE_METHOD(200,const char)
+#define MS_FILTER_REC_CLOSE     MS_FILTER_BASE_METHOD_NO_ARG(201)
 
 /* used by awk script in Makefile.am to generate alldescs.c */
 #define MS_FILTER_DESC_EXPORT(desc)

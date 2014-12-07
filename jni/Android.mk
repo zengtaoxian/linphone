@@ -93,6 +93,7 @@ ifeq (,$(DUMP_VAR))
 $(info $(TARGET_ARCH_ABI): Build X264 plugin for mediastreamer2)
 endif
 include $(linphone-root-dir)/submodules/msx264/Android.mk
+include $(linphone-root-dir)/submodules/externals/build/vpu/Android.mk
 include $(linphone-root-dir)/submodules/externals/build/x264/Android.mk
 endif
 

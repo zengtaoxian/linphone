@@ -39,6 +39,7 @@ MEDIASTREAMER2_INCLUDES := \
 	$(LOCAL_PATH)/../../../externals/speex/include \
 	$(LOCAL_PATH)/../../../externals/build/speex \
 	$(LOCAL_PATH)/../../../externals/gsm/inc \
+	$(LOCAL_PATH)/../../../externals/build/vpu \
 	$(LOCAL_PATH)/../../../externals/ffmpeg \
 	$(LOCAL_PATH)/../../../externals/ \
 	$(LOCAL_PATH)/../../../externals/build/ffmpeg/$(TARGET_ARCH) \

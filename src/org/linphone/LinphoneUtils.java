@@ -291,6 +291,8 @@ public final class LinphoneUtils {
     }
 	
 	private static boolean isConnectionFast(int type, int subType){
+        return true;
+/*        
         if (type == ConnectivityManager.TYPE_WIFI) {
             return true;
         } else if (type == ConnectivityManager.TYPE_MOBILE) {
@@ -332,6 +334,7 @@ public final class LinphoneUtils {
         } else {
             return false;
         }
+*/
     }
 	
 	public static void clearLogs() {
